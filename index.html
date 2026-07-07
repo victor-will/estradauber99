@@ -163,6 +163,16 @@ hr.sep{border:none;border-top:1px solid var(--asphalt-700);margin:12px 0;}
 .bd-row .val{flex:0 0 auto;color:var(--fog-300);}
 
 .empty-hint{font-size:12px;color:var(--fog-600);text-align:center;padding:6px 0 2px;}
+
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+.mini-nav{display:flex;gap:6px;}
+.mini-nav button{
+  background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-100);
+  width:28px;height:28px;border-radius:8px;font-size:14px;cursor:pointer;
+}
+.mini-nav button:active{background:var(--asphalt-700);}
+.month-label{font-size:13px;color:var(--fog-400);margin-bottom:12px;}
+.days-worked{font-size:12px;color:var(--fog-600);text-align:center;margin-top:2px;margin-bottom:8px;}
 </style>
 </head>
 <body>
@@ -180,6 +190,7 @@ const STORAGE_KEY = 'estrada-data';
 let state = {
   entries: {},        // { 'YYYY-MM-DD': {km,uber,n99,extra,gasto} }
   currentMonday: getMonday(new Date()),
+  currentMonthAnchor: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   selectedDate: isoDate(new Date()),
   draft: {km:'',uber:'',n99:'',extra:'',gasto:''},
   loaded: false,
@@ -305,10 +316,11 @@ function weekRangeLabel(monday){
 
 function computeWeekStats(monday){
   const days = weekDates(monday).map(isoDate);
-  let totalKm=0, totalUber=0, total99=0, totalExtra=0, totalGasto=0;
+  let totalKm=0, totalUber=0, total99=0, totalExtra=0, totalGasto=0, diasTrabalhados=0;
   days.forEach(ds=>{
     const e = state.entries[ds];
     if(!e) return;
+    diasTrabalhados++;
     totalKm += e.km||0;
     totalUber += e.uber||0;
     total99 += e.n99||0;
@@ -318,7 +330,39 @@ function computeWeekStats(monday){
   const totalFaturado = totalUber+total99+totalExtra;
   const liquido = totalFaturado - totalGasto;
   const rsPorKm = totalKm>0 ? totalFaturado/totalKm : 0;
-  return {totalKm,totalUber,total99,totalExtra,totalGasto,totalFaturado,liquido,rsPorKm};
+  const mediaKmDia = diasTrabalhados>0 ? totalKm/diasTrabalhados : 0;
+  const mediaFaturadoDia = diasTrabalhados>0 ? totalFaturado/diasTrabalhados : 0;
+  return {totalKm,totalUber,total99,totalExtra,totalGasto,totalFaturado,liquido,rsPorKm,diasTrabalhados,mediaKmDia,mediaFaturadoDia};
+}
+
+function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function monthLabel(d){
+  const s = d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  return s.charAt(0).toUpperCase()+s.slice(1);
+}
+function computeMonthStats(anchor){
+  const ym = monthKey(anchor);
+  let totalKm=0, totalUber=0, total99=0, totalExtra=0, totalGasto=0, diasTrabalhados=0;
+  Object.keys(state.entries).forEach(ds=>{
+    if(!ds.startsWith(ym+'-')) return;
+    const e = state.entries[ds];
+    diasTrabalhados++;
+    totalKm += e.km||0;
+    totalUber += e.uber||0;
+    total99 += e.n99||0;
+    totalExtra += e.extra||0;
+    totalGasto += e.gasto||0;
+  });
+  const totalFaturado = totalUber+total99+totalExtra;
+  const liquido = totalFaturado - totalGasto;
+  const rsPorKm = totalKm>0 ? totalFaturado/totalKm : 0;
+  const mediaKmDia = diasTrabalhados>0 ? totalKm/diasTrabalhados : 0;
+  const mediaFaturadoDia = diasTrabalhados>0 ? totalFaturado/diasTrabalhados : 0;
+  return {totalKm,totalUber,total99,totalExtra,totalGasto,totalFaturado,liquido,rsPorKm,diasTrabalhados,mediaKmDia,mediaFaturadoDia};
+}
+function shiftMonth(n){
+  state.currentMonthAnchor = new Date(state.currentMonthAnchor.getFullYear(), state.currentMonthAnchor.getMonth()+n, 1);
+  render();
 }
 
 function renderRoad(monday, selectedDate){
@@ -434,11 +478,42 @@ function renderSummary(){
         <div class="stat pos"><div class="l">Faturado</div><div class="v num">${fmtBRL(s.totalFaturado)}</div></div>
         <div class="stat"><div class="l">Km rodado</div><div class="v num">${fmtKm(s.totalKm)} km</div></div>
         <div class="stat neg"><div class="l">Gastos</div><div class="v num">${fmtBRL(s.totalGasto)}</div></div>
-        <div class="stat ${s.liquido>=0?'pos':'neg'}"><div class="l">Líquido</div><div class="v num">${fmtBRL(s.liquido)}</div></div>
+        <div class="stat ${s.liquido>=0?'pos':'neg'}"><div class="v num">${fmtBRL(s.liquido)}</div><div class="l" style="margin-top:2px">Líquido</div></div>
+        <div class="stat"><div class="l">Média km/dia</div><div class="v num">${fmtKm(s.mediaKmDia)} km</div></div>
+        <div class="stat"><div class="l">Média faturado/dia</div><div class="v num">${fmtBRL(s.mediaFaturadoDia)}</div></div>
       </div>
+      <div class="days-worked">${s.diasTrabalhados} ${s.diasTrabalhados===1?'dia trabalhado':'dias trabalhados'} nesta semana</div>
       ${renderGauge(s.rsPorKm)}
       <hr class="sep">
       ${renderBreakdown(s)}
+      `}
+    </div>`;
+}
+
+function renderMonthSummary(){
+  const anchor = state.currentMonthAnchor;
+  const s = computeMonthStats(anchor);
+  const hasData = s.diasTrabalhados>0;
+  return `
+    <div class="card">
+      <div class="card-head">
+        <h2 style="margin:0">Resumo do mês</h2>
+        <div class="mini-nav">
+          <button onclick="shiftMonth(-1)">‹</button>
+          <button onclick="shiftMonth(1)">›</button>
+        </div>
+      </div>
+      <div class="month-label">${monthLabel(anchor)}</div>
+      ${!hasData ? '<div class="empty-hint">Nenhum dia registrado neste mês ainda.</div>' : `
+      <div class="summary-grid">
+        <div class="stat pos"><div class="l">Faturado</div><div class="v num">${fmtBRL(s.totalFaturado)}</div></div>
+        <div class="stat"><div class="l">Km rodado</div><div class="v num">${fmtKm(s.totalKm)} km</div></div>
+        <div class="stat neg"><div class="l">Gastos</div><div class="v num">${fmtBRL(s.totalGasto)}</div></div>
+        <div class="stat ${s.liquido>=0?'pos':'neg'}"><div class="v num">${fmtBRL(s.liquido)}</div><div class="l" style="margin-top:2px">Líquido</div></div>
+        <div class="stat"><div class="l">Média km/dia</div><div class="v num">${fmtKm(s.mediaKmDia)} km</div></div>
+        <div class="stat"><div class="l">Média faturado/dia</div><div class="v num">${fmtBRL(s.mediaFaturadoDia)}</div></div>
+      </div>
+      <div class="days-worked">${s.diasTrabalhados} ${s.diasTrabalhados===1?'dia trabalhado':'dias trabalhados'} neste mês</div>
       `}
     </div>`;
 }
@@ -461,6 +536,7 @@ function render(){
     ${renderRoad(state.currentMonday, state.selectedDate)}
     ${renderDayCard()}
     ${renderSummary()}
+    ${renderMonthSummary()}
   `;
   document.getElementById('app').innerHTML = html;
 }
