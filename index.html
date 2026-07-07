@@ -215,9 +215,9 @@ function entryTotal(e){ if(!e) return 0; return (e.uber||0)+(e.n99||0)+(e.extra|
 
 async function loadData(){
   try{
-    const res = await window.storage.get(STORAGE_KEY, false);
-    if(res && res.value){
-      const parsed = JSON.parse(res.value);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
       state.entries = parsed.entries || {};
     }
   }catch(e){ state.entries = {}; }
@@ -229,7 +229,7 @@ async function loadData(){
 async function persist(){
   state.saving = true;
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify({entries: state.entries}), false);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({entries: state.entries}));
     state.justSaved = true;
     setTimeout(()=>{ state.justSaved=false; render(); }, 1600);
   }catch(e){ console.error('Erro ao salvar', e); }
