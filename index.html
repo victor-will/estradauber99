@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#101114">
+<title>Estrada — fechamento semanal</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --asphalt-950:#101114;
+  --asphalt-900:#17181d;
+  --asphalt-800:#1f2127;
+  --asphalt-700:#2a2c34;
+  --asphalt-600:#3a3d47;
+  --lane-yellow:#f4c430;
+  --lane-yellow-dim:#5c4e1c;
+  --route-green:#5fb878;
+  --route-green-dim:#233a2b;
+  --brake-red:#e8555f;
+  --brake-red-dim:#3a2226;
+  --fog-100:#edeef2;
+  --fog-300:#b7bac4;
+  --fog-400:#9296a3;
+  --fog-600:#63666f;
+  --radius:16px;
+  --radius-sm:10px;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(circle at 50% -10%, #202329 0%, var(--asphalt-950) 55%);
+  color:var(--fog-100);
+  font-family:'Space Grotesk',system-ui,sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:40px;
+}
+.num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;}
+
+#app{max-width:520px;margin:0 auto;padding:18px 16px 8px;}
+
+/* ---- header ---- */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.brand{display:flex;align-items:baseline;gap:8px;}
+.brand h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-0.02em;}
+.brand .dot{color:var(--lane-yellow);}
+.today-btn{
+  background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-300);
+  font-family:inherit;font-size:12px;padding:7px 12px;border-radius:999px;cursor:pointer;
+}
+.today-btn:active{background:var(--asphalt-700);}
+
+/* ---- week nav ---- */
+.week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.week-nav button{
+  background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-100);
+  width:36px;height:36px;border-radius:10px;font-size:16px;cursor:pointer;
+}
+.week-nav button:active{background:var(--asphalt-700);}
+.week-range{font-size:13px;color:var(--fog-400);text-align:center;}
+.week-range strong{color:var(--fog-100);font-weight:600;}
+
+/* ---- road strip (signature element) ---- */
+.road{
+  position:relative;
+  background:var(--asphalt-900);
+  border:1px solid var(--asphalt-700);
+  border-radius:var(--radius);
+  padding:14px 10px 10px;
+  margin-bottom:16px;
+}
+.road::before{
+  content:"";
+  position:absolute;top:8px;left:14px;right:14px;height:2px;
+  background-image:repeating-linear-gradient(90deg,var(--lane-yellow-dim) 0 10px, transparent 10px 20px);
+  opacity:.7;
+}
+.road-days{display:flex;gap:6px;margin-top:10px;}
+.day-seg{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;
+  cursor:pointer;background:none;border:none;color:inherit;font-family:inherit;padding:0;
+}
+.bar-track{
+  width:100%;height:54px;border-radius:6px;background:var(--asphalt-800);
+  display:flex;align-items:flex-end;overflow:hidden;position:relative;
+  border:1px solid var(--asphalt-700);
+}
+.bar-fill{width:100%;background:linear-gradient(180deg,var(--route-green) 0%, #3f8a5c 100%);border-radius:6px 6px 0 0;transition:height .25s ease;}
+.day-seg.selected .bar-track{border-color:var(--lane-yellow);box-shadow:0 0 0 1px var(--lane-yellow) inset;}
+.day-seg .lbl{font-size:11px;color:var(--fog-400);letter-spacing:.03em;}
+.day-seg.selected .lbl{color:var(--lane-yellow);font-weight:600;}
+.day-seg .dnum{font-size:11px;color:var(--fog-600);}
+.day-seg.today .dnum{color:var(--fog-100);}
+.exp-dot{position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:var(--brake-red);}
+
+/* ---- cards ---- */
+.card{
+  background:var(--asphalt-900);border:1px solid var(--asphalt-700);
+  border-radius:var(--radius);padding:16px;margin-bottom:14px;
+}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--fog-400);margin:0 0 14px;font-weight:600;}
+
+/* ---- day form ---- */
+.field-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.field-row:last-of-type{margin-bottom:0;}
+.field-label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--fog-300);}
+.swatch{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.sw-km{background:var(--fog-400);}
+.sw-uber{background:#5fb8e8;}
+.sw-99{background:var(--lane-yellow);}
+.sw-extra{background:var(--route-green);}
+.sw-gasto{background:var(--brake-red);}
+.field-input{position:relative;display:flex;align-items:center;}
+.field-input span{position:absolute;left:10px;font-size:13px;color:var(--fog-600);pointer-events:none;}
+.field-input input{
+  width:120px;text-align:right;background:var(--asphalt-800);border:1px solid var(--asphalt-700);
+  color:var(--fog-100);border-radius:var(--radius-sm);padding:9px 10px 9px 30px;font-size:15px;
+  font-family:'JetBrains Mono',monospace;
+}
+.field-input.km input{padding-left:10px;padding-right:34px;text-align:right;}
+.field-input.km span{left:auto;right:10px;}
+input:focus{outline:none;border-color:var(--lane-yellow);}
+hr.sep{border:none;border-top:1px solid var(--asphalt-700);margin:12px 0;}
+.day-total{display:flex;justify-content:space-between;align-items:center;font-size:14px;}
+.day-total .v{font-size:17px;font-weight:600;color:var(--route-green);}
+
+.actions{display:flex;gap:10px;margin-top:14px;}
+.btn{
+  flex:1;padding:12px;border-radius:var(--radius-sm);border:none;font-family:inherit;
+  font-size:14px;font-weight:600;cursor:pointer;text-align:center;
+}
+.btn-primary{background:var(--lane-yellow);color:#1a1607;}
+.btn-primary:active{background:#dcb229;}
+.btn-ghost{background:transparent;color:var(--fog-400);border:1px solid var(--asphalt-700);flex:0 0 auto;padding:12px 16px;}
+.btn-ghost:active{background:var(--asphalt-800);}
+.saved-msg{font-size:12px;color:var(--route-green);text-align:center;margin-top:8px;height:14px;opacity:0;transition:opacity .2s;}
+.saved-msg.show{opacity:1;}
+
+/* ---- summary ---- */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.stat{background:var(--asphalt-800);border-radius:var(--radius-sm);padding:12px;}
+.stat .l{font-size:11px;color:var(--fog-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.stat .v{font-size:19px;font-weight:600;}
+.stat.pos .v{color:var(--route-green);}
+.stat.neg .v{color:var(--brake-red);}
+
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding:6px 0 0;}
+.gauge-val{margin-top:-46px;text-align:center;}
+.gauge-val .n{font-size:26px;font-weight:700;}
+.gauge-val .u{font-size:11px;color:var(--fog-400);display:block;margin-top:2px;}
+
+.breakdown{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.bd-row{display:flex;align-items:center;gap:10px;font-size:13px;}
+.bd-row .lbl{flex:0 0 64px;color:var(--fog-300);display:flex;align-items:center;gap:6px;}
+.bd-row .track{flex:1;height:6px;background:var(--asphalt-800);border-radius:4px;overflow:hidden;}
+.bd-row .fill{height:100%;border-radius:4px;}
+.bd-row .val{flex:0 0 auto;color:var(--fog-300);}
+
+.empty-hint{font-size:12px;color:var(--fog-600);text-align:center;padding:6px 0 2px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const APPS_META = {
+  uber:{label:'Uber', sw:'sw-uber', color:'#5fb8e8'},
+  n99:{label:'99', sw:'sw-99', color:'var(--lane-yellow)'},
+  extra:{label:'Extra', sw:'sw-extra', color:'var(--route-green)'}
+};
+const DAY_LABELS = ['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
+const STORAGE_KEY = 'estrada-data';
+
+let state = {
+  entries: {},        // { 'YYYY-MM-DD': {km,uber,n99,extra,gasto} }
+  currentMonday: getMonday(new Date()),
+  selectedDate: isoDate(new Date()),
+  draft: {km:'',uber:'',n99:'',extra:'',gasto:''},
+  loaded: false,
+  saving:false,
+  justSaved:false
+};
+
+function getMonday(d){
+  const date = new Date(d);
+  const day = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - day);
+  date.setHours(0,0,0,0);
+  return date;
+}
+function isoDate(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function weekDates(monday){ return Array.from({length:7},(_,i)=>addDays(monday,i)); }
+function fmtBRL(n){ return (n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+function fmtKm(n){ return (n||0).toLocaleString('pt-BR',{maximumFractionDigits:1}); }
+function parseNum(v){
+  if(typeof v!=='string') return 0;
+  const n = parseFloat(v.replace(/\./g,'').replace(',','.'));
+  return isNaN(n)?0:n;
+}
+function toInputStr(n){
+  if(!n) return '';
+  return String(n).replace('.',',');
+}
+function entryTotal(e){ if(!e) return 0; return (e.uber||0)+(e.n99||0)+(e.extra||0); }
+
+async function loadData(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      state.entries = parsed.entries || {};
+    }
+  }catch(e){ state.entries = {}; }
+  state.loaded = true;
+  loadDraftFromEntry();
+  render();
+}
+
+async function persist(){
+  state.saving = true;
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify({entries: state.entries}), false);
+    state.justSaved = true;
+    setTimeout(()=>{ state.justSaved=false; render(); }, 1600);
+  }catch(e){ console.error('Erro ao salvar', e); }
+  state.saving = false;
+}
+
+function loadDraftFromEntry(){
+  const e = state.entries[state.selectedDate];
+  state.draft = {
+    km: e ? toInputStr(e.km) : '',
+    uber: e ? toInputStr(e.uber) : '',
+    n99: e ? toInputStr(e.n99) : '',
+    extra: e ? toInputStr(e.extra) : '',
+    gasto: e ? toInputStr(e.gasto) : ''
+  };
+}
+
+function selectDay(dateStr){
+  state.selectedDate = dateStr;
+  loadDraftFromEntry();
+  render();
+}
+
+function onFieldInput(field, val){
+  state.draft[field] = val;
+}
+
+async function saveDay(){
+  const d = state.draft;
+  const entry = {
+    km: parseNum(d.km),
+    uber: parseNum(d.uber),
+    n99: parseNum(d.n99),
+    extra: parseNum(d.extra),
+    gasto: parseNum(d.gasto)
+  };
+  const isEmpty = Object.values(entry).every(v=>v===0);
+  if(isEmpty){ delete state.entries[state.selectedDate]; }
+  else { state.entries[state.selectedDate] = entry; }
+  await persist();
+  render();
+}
+
+async function clearDay(){
+  delete state.entries[state.selectedDate];
+  state.draft = {km:'',uber:'',n99:'',extra:'',gasto:''};
+  await persist();
+  render();
+}
+
+function goToday(){
+  const t = new Date();
+  state.currentMonday = getMonday(t);
+  state.selectedDate = isoDate(t);
+  loadDraftFromEntry();
+  render();
+}
+function shiftWeek(n){
+  state.currentMonday = addDays(state.currentMonday, n*7);
+  const days = weekDates(state.currentMonday).map(isoDate);
+  if(!days.includes(state.selectedDate)){
+    state.selectedDate = days[0];
+    loadDraftFromEntry();
+  }
+  render();
+}
+
+function weekRangeLabel(monday){
+  const sun = addDays(monday,6);
+  const fmt = d => d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  return `${fmt(monday)} – ${fmt(sun)}`;
+}
+
+function computeWeekStats(monday){
+  const days = weekDates(monday).map(isoDate);
+  let totalKm=0, totalUber=0, total99=0, totalExtra=0, totalGasto=0;
+  days.forEach(ds=>{
+    const e = state.entries[ds];
+    if(!e) return;
+    totalKm += e.km||0;
+    totalUber += e.uber||0;
+    total99 += e.n99||0;
+    totalExtra += e.extra||0;
+    totalGasto += e.gasto||0;
+  });
+  const totalFaturado = totalUber+total99+totalExtra;
+  const liquido = totalFaturado - totalGasto;
+  const rsPorKm = totalKm>0 ? totalFaturado/totalKm : 0;
+  return {totalKm,totalUber,total99,totalExtra,totalGasto,totalFaturado,liquido,rsPorKm};
+}
+
+function renderRoad(monday, selectedDate){
+  const days = weekDates(monday);
+  const totals = days.map(d => entryTotal(state.entries[isoDate(d)]));
+  const max = Math.max(1, ...totals);
+  const todayStr = isoDate(new Date());
+  const segs = days.map((d,i)=>{
+    const ds = isoDate(d);
+    const e = state.entries[ds];
+    const t = totals[i];
+    const h = t>0 ? Math.max(10, Math.round((t/max)*54)) : 0;
+    const isSel = ds===selectedDate;
+    const isToday = ds===todayStr;
+    return `
+      <button class="day-seg ${isSel?'selected':''} ${isToday?'today':''}" onclick="selectDay('${ds}')">
+        <div class="bar-track">
+          ${e && e.gasto>0 ? '<div class="exp-dot"></div>':''}
+          <div class="bar-fill" style="height:${h}px"></div>
+        </div>
+        <span class="lbl">${DAY_LABELS[i]}</span>
+        <span class="dnum num">${d.getDate()}</span>
+      </button>`;
+  }).join('');
+  return `<div class="road"><div class="road-days">${segs}</div></div>`;
+}
+
+function fieldRow(field, label, swClass, unit, extraClass){
+  const v = state.draft[field];
+  return `
+    <div class="field-row">
+      <div class="field-label"><span class="swatch ${swClass}"></span>${label}</div>
+      <div class="field-input ${extraClass||''}">
+        ${unit==='R$' ? '<span>R$</span>' : ''}
+        <input type="text" inputmode="decimal" placeholder="0" value="${v}"
+          oninput="onFieldInput('${field}', this.value)">
+        ${unit==='km' ? '<span>km</span>' : ''}
+      </div>
+    </div>`;
+}
+
+function renderDayCard(){
+  const d = new Date(state.selectedDate+'T00:00:00');
+  const label = d.toLocaleDateString('pt-BR',{weekday:'long', day:'2-digit', month:'long'});
+  const draftTotal = parseNum(state.draft.uber)+parseNum(state.draft.n99)+parseNum(state.draft.extra);
+  return `
+    <div class="card">
+      <h2>${label}</h2>
+      ${fieldRow('km','KM rodado','sw-km','km','km')}
+      <hr class="sep">
+      ${fieldRow('uber','Uber','sw-uber','R$')}
+      ${fieldRow('n99','99','sw-99','R$')}
+      ${fieldRow('extra','Corrida por fora','sw-extra','R$')}
+      <hr class="sep">
+      ${fieldRow('gasto','Gasto do dia','sw-gasto','R$')}
+      <hr class="sep">
+      <div class="day-total">
+        <span>Faturado no dia</span>
+        <span class="v num">${fmtBRL(draftTotal)}</span>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="saveDay()">Salvar dia</button>
+        <button class="btn btn-ghost" onclick="clearDay()">Limpar</button>
+      </div>
+      <div class="saved-msg ${state.justSaved?'show':''}">Salvo ✓</div>
+    </div>`;
+}
+
+function renderGauge(rsPorKm){
+  const scaleMax = 3;
+  const frac = Math.max(0, Math.min(1, rsPorKm/scaleMax));
+  const r = 70, cx=100, cy=95;
+  const circumference = Math.PI*r;
+  const offset = circumference*(1-frac);
+  const path = `M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`;
+  return `
+    <div class="gauge-wrap">
+      <svg width="200" height="105" viewBox="0 0 200 105">
+        <path d="${path}" fill="none" stroke="var(--asphalt-800)" stroke-width="12" stroke-linecap="round"/>
+        <path d="${path}" fill="none" stroke="var(--lane-yellow)" stroke-width="12" stroke-linecap="round"
+          stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+      </svg>
+      <div class="gauge-val">
+        <span class="n num">${rsPorKm.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+        <span class="u">R$ por km rodado</span>
+      </div>
+    </div>`;
+}
+
+function renderBreakdown(s){
+  const rows = [
+    {label:'Uber', val:s.totalUber, color:APPS_META.uber.color, sw:'sw-uber'},
+    {label:'99', val:s.total99, color:'#f4c430', sw:'sw-99'},
+    {label:'Extra', val:s.totalExtra, color:'#5fb878', sw:'sw-extra'}
+  ];
+  const max = Math.max(1, ...rows.map(r=>r.val));
+  return rows.map(r=>`
+    <div class="bd-row">
+      <div class="lbl"><span class="swatch ${r.sw}"></span>${r.label}</div>
+      <div class="track"><div class="fill" style="width:${(r.val/max)*100}%;background:${r.color}"></div></div>
+      <div class="val num">${fmtBRL(r.val)}</div>
+    </div>`).join('');
+}
+
+function renderSummary(){
+  const s = computeWeekStats(state.currentMonday);
+  const hasData = s.totalFaturado>0 || s.totalKm>0 || s.totalGasto>0;
+  return `
+    <div class="card">
+      <h2>Resumo da semana</h2>
+      ${!hasData ? '<div class="empty-hint">Registre um dia para ver o fechamento da semana aqui.</div>' : `
+      <div class="summary-grid">
+        <div class="stat pos"><div class="l">Faturado</div><div class="v num">${fmtBRL(s.totalFaturado)}</div></div>
+        <div class="stat"><div class="l">Km rodado</div><div class="v num">${fmtKm(s.totalKm)} km</div></div>
+        <div class="stat neg"><div class="l">Gastos</div><div class="v num">${fmtBRL(s.totalGasto)}</div></div>
+        <div class="stat ${s.liquido>=0?'pos':'neg'}"><div class="l">Líquido</div><div class="v num">${fmtBRL(s.liquido)}</div></div>
+      </div>
+      ${renderGauge(s.rsPorKm)}
+      <hr class="sep">
+      ${renderBreakdown(s)}
+      `}
+    </div>`;
+}
+
+function render(){
+  if(!state.loaded){
+    document.getElementById('app').innerHTML = `<div style="padding:60px 0;text-align:center;color:var(--fog-400);font-size:13px;">Carregando…</div>`;
+    return;
+  }
+  const html = `
+    <div class="topbar">
+      <div class="brand"><h1>Estrada<span class="dot">.</span></h1></div>
+      <button class="today-btn" onclick="goToday()">Hoje</button>
+    </div>
+    <div class="week-nav">
+      <button onclick="shiftWeek(-1)">‹</button>
+      <div class="week-range">Semana <strong>${weekRangeLabel(state.currentMonday)}</strong></div>
+      <button onclick="shiftWeek(1)">›</button>
+    </div>
+    ${renderRoad(state.currentMonday, state.selectedDate)}
+    ${renderDayCard()}
+    ${renderSummary()}
+  `;
+  document.getElementById('app').innerHTML = html;
+}
+
+loadData();
+</script>
+</body>
+</html>
