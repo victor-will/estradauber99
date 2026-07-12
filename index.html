@@ -136,7 +136,9 @@ hr.sep{border:none;border-top:1px solid var(--asphalt-700);margin:12px 0;}
 .day-total{display:flex;justify-content:space-between;align-items:center;font-size:14px;}
 .day-total .v{font-size:17px;font-weight:600;color:var(--route-green);}
 
-.actions{display:flex;gap:10px;margin-top:14px;}
+.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.pick-row{gap:8px;}
+.pick-btn{flex:1 1 30%;min-width:0;padding:10px 6px;font-size:12px;text-align:center;white-space:normal;line-height:1.25;}
 .btn{
   flex:1;padding:12px;border-radius:var(--radius-sm);border:none;font-family:inherit;
   font-size:14px;font-weight:600;cursor:pointer;text-align:center;
@@ -388,6 +390,26 @@ function onFieldInput(field, val){
   state.draft[field] = val;
 }
 
+function buildEntryFromDraft(){
+  const d = state.draft;
+  return {
+    km: parseNum(d.km),
+    uber: parseNum(d.uber),
+    n99: parseNum(d.n99),
+    extra: parseNum(d.extra),
+    gastos: state.draftGastos.filter(g=>g.valor>0)
+  };
+}
+
+async function persistCurrentDay(){
+  const entry = buildEntryFromDraft();
+  const isEmpty = entry.km===0 && entry.uber===0 && entry.n99===0 && entry.extra===0 && entry.gastos.length===0;
+  if(isEmpty){ delete state.entries[state.selectedDate]; }
+  else { state.entries[state.selectedDate] = entry; }
+  await persist();
+  renderResumoContent();
+}
+
 function addGastoDraft(){
   const cat = document.getElementById('gasto-cat').value;
   const valorStr = document.getElementById('gasto-valor').value;
@@ -399,26 +421,17 @@ function addGastoDraft(){
   state.novoGastoValor = '';
   state.novoGastoObs = '';
   renderDiarioContent();
+  persistCurrentDay();
 }
 
 function removeGastoDraft(idx){
   state.draftGastos.splice(idx,1);
   renderDiarioContent();
+  persistCurrentDay();
 }
 
 async function saveDay(){
-  const d = state.draft;
-  const entry = {
-    km: parseNum(d.km),
-    uber: parseNum(d.uber),
-    n99: parseNum(d.n99),
-    extra: parseNum(d.extra),
-    gastos: state.draftGastos.filter(g=>g.valor>0)
-  };
-  const isEmpty = entry.km===0 && entry.uber===0 && entry.n99===0 && entry.extra===0 && entry.gastos.length===0;
-  if(isEmpty){ delete state.entries[state.selectedDate]; }
-  else { state.entries[state.selectedDate] = entry; }
-  await persist();
+  await persistCurrentDay();
   renderDiarioContent();
 }
 
@@ -430,6 +443,7 @@ async function clearDay(){
   state.novoGastoObs = '';
   await persist();
   renderDiarioContent();
+  renderResumoContent();
 }
 
 function goToday(){
@@ -913,10 +927,10 @@ function simShellHTML(){
 
       <div id="sim-search-status" class="empty-hint" style="min-height:14px"></div>
 
-      <div class="actions" style="margin-bottom:2px;">
-        <button class="btn btn-ghost" id="pickbtn-gps" onclick="armPickMode('gps')" style="${state.considerDeslocamento?'':'display:none'}">📍 Meu local</button>
-        <button class="btn btn-ghost" id="pickbtn-pickup" onclick="armPickMode('pickup')">Marcar busca</button>
-        <button class="btn btn-ghost" id="pickbtn-destino" onclick="armPickMode('destino')">Marcar destino</button>
+      <div class="actions pick-row" style="margin-bottom:2px;">
+        <button class="btn btn-ghost pick-btn" id="pickbtn-gps" onclick="armPickMode('gps')" style="${state.considerDeslocamento?'':'display:none'}">📍 Meu local</button>
+        <button class="btn btn-ghost pick-btn" id="pickbtn-pickup" onclick="armPickMode('pickup')">Marcar busca</button>
+        <button class="btn btn-ghost pick-btn" id="pickbtn-destino" onclick="armPickMode('destino')">Marcar destino</button>
       </div>
       <div id="pick-hint" class="empty-hint"></div>
 
@@ -1068,7 +1082,17 @@ async function doSearch(which, query){
       if(statusEl) statusEl.textContent = 'Endereço não encontrado — tente incluir bairro/cidade, ou marque no mapa.';
       return;
     }
-    if(statusEl) statusEl.textContent = '';
+    const numMatch = query.match(/\d+/);
+    const hasExactNumber = numMatch ? results.some(r => new RegExp('\\b'+numMatch[0]+'\\b').test(r.label)) : true;
+    if(statusEl){
+      if(hasExactNumber){
+        statusEl.textContent = '';
+        statusEl.style.color = '';
+      }else{
+        statusEl.textContent = `⚠ Não achamos o número ${numMatch[0]} exato — os resultados abaixo são aproximados (podem cair em outro ponto da rua). Se der, confira no mapa ou toque em "Marcar busca/destino" pra ajustar manualmente.`;
+        statusEl.style.color = 'var(--lane-yellow)';
+      }
+    }
     renderSuggestions(which, results);
   }catch(e){
     if(statusEl) statusEl.textContent = 'Erro ao buscar endereço.';
