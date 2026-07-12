@@ -7,6 +7,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#101114">
 <title>Estrada — fechamento semanal</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
@@ -52,18 +56,20 @@ body{
 .brand .dot{color:var(--lane-yellow);}
 .today-btn{
   background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-300);
-  font-family:inherit;font-size:12px;padding:7px 12px;border-radius:999px;cursor:pointer;
+  font-family:inherit;font-size:12px;padding:0 14px;height:36px;border-radius:999px;cursor:pointer;
+  flex-shrink:0;white-space:nowrap;
 }
 .today-btn:active{background:var(--asphalt-700);}
 
 /* ---- week nav ---- */
-.week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.week-nav button{
+.week-nav{display:flex;align-items:center;justify-content:space-between;gap:8px 10px;margin-bottom:14px;flex-wrap:wrap;}
+.week-nav > button:not(.today-btn){flex-shrink:0;}
+.week-nav button:not(.today-btn){
   background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-100);
   width:36px;height:36px;border-radius:10px;font-size:16px;cursor:pointer;
 }
-.week-nav button:active{background:var(--asphalt-700);}
-.week-range{font-size:13px;color:var(--fog-400);text-align:center;}
+.week-nav button:not(.today-btn):active{background:var(--asphalt-700);}
+.week-range{font-size:13px;color:var(--fog-400);text-align:center;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .week-range strong{color:var(--fog-100);font-weight:600;}
 
 /* ---- road strip (signature element) ---- */
@@ -173,6 +179,70 @@ hr.sep{border:none;border-top:1px solid var(--asphalt-700);margin:12px 0;}
 .mini-nav button:active{background:var(--asphalt-700);}
 .month-label{font-size:13px;color:var(--fog-400);margin-bottom:12px;}
 .days-worked{font-size:12px;color:var(--fog-600);text-align:center;margin-top:2px;margin-bottom:8px;}
+
+/* ---- tabs ---- */
+.tabs{display:flex;gap:4px;background:var(--asphalt-900);border:1px solid var(--asphalt-700);border-radius:12px;padding:4px;margin-bottom:16px;}
+.tab-btn{flex:1;padding:9px 6px;border:none;background:none;color:var(--fog-400);font-family:inherit;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;}
+.tab-btn.active{background:var(--asphalt-700);color:var(--lane-yellow);}
+
+/* ---- simular corrida ---- */
+.sim-map{width:100%;height:260px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--asphalt-700);margin-bottom:10px;background:var(--asphalt-800);}
+.gps-status{font-size:12px;color:var(--fog-400);text-align:center;margin-bottom:12px;min-height:14px;}
+
+.suggestions{display:flex;flex-direction:column;gap:4px;margin:4px 0 10px;}
+.sugg-item{
+  display:block;width:100%;text-align:left;background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-300);
+  font-family:inherit;font-size:12.5px;padding:9px 10px;border-radius:8px;cursor:pointer;line-height:1.35;
+}
+.sugg-item:active{background:var(--asphalt-700);border-color:var(--lane-yellow);}
+
+.check-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--fog-300);cursor:pointer;}
+.check-row input{width:17px;height:17px;accent-color:var(--lane-yellow);flex-shrink:0;}
+
+.expense-add-row{display:flex;gap:8px;align-items:center;margin-top:8px;}
+.expense-add-row select{
+  flex:1;background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-100);
+  border-radius:var(--radius-sm);padding:9px 8px;font-size:13px;font-family:inherit;
+}
+.add-gasto-btn{flex:0 0 auto;width:38px;padding:9px 0;font-size:18px;line-height:1;}
+.gasto-items{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+.gasto-item{
+  display:flex;align-items:center;gap:8px;background:var(--asphalt-800);border:1px solid var(--asphalt-700);
+  border-radius:8px;padding:8px 10px;font-size:13px;
+}
+.gi-cat{flex:1;color:var(--fog-300);}
+.gi-obs{color:var(--fog-600);font-size:12px;}
+.obs-input{
+  width:100%;background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-100);
+  border-radius:var(--radius-sm);padding:9px 10px;font-size:13px;font-family:inherit;margin-top:6px;
+}
+.obs-input::placeholder{color:var(--fog-600);}
+.gi-val{color:var(--brake-red);}
+.gi-del{
+  background:none;border:none;color:var(--fog-600);font-size:16px;cursor:pointer;padding:0 2px;line-height:1;
+}
+.gi-del:active{color:var(--brake-red);}
+.pin-label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fog-400);margin-bottom:6px;}
+.pin-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.pin-gps{background:#5fb8e8;}
+.pin-pickup{background:var(--lane-yellow);}
+.pin-destino{background:var(--route-green);}
+.addr-row{display:flex;gap:8px;margin-bottom:12px;}
+.addr-row input{
+  flex:1;min-width:0;background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-100);
+  border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;font-family:inherit;
+}
+.addr-row button{
+  flex:0 0 auto;background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-100);
+  border-radius:var(--radius-sm);padding:0 14px;font-size:13px;cursor:pointer;
+}
+.addr-row button:active{background:var(--asphalt-700);}
+.btn-ghost.active{background:var(--asphalt-700);color:var(--lane-yellow);border-color:var(--lane-yellow);}
+.rate-row{display:flex;gap:10px;margin-bottom:14px;}
+.rate-field{flex:1;}
+.rate-field label{font-size:11px;color:var(--fog-400);display:block;margin-bottom:4px;}
+.settings-toggle{font-size:12px;color:var(--fog-600);text-decoration:underline;text-align:center;margin-top:12px;cursor:pointer;}
+.settings-box{margin-top:10px;padding-top:10px;border-top:1px solid var(--asphalt-700);}
 </style>
 </head>
 <body>
@@ -186,16 +256,55 @@ const APPS_META = {
 };
 const DAY_LABELS = ['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
 const STORAGE_KEY = 'estrada-data';
+const CATEGORIAS_GASTO = ['Combustível','Alimentação','Manutenção','Pedágio','Outro'];
+
+function gastosArray(entry){
+  if(!entry) return [];
+  if(Array.isArray(entry.gastos)) return entry.gastos;
+  if(entry.gasto) return [{categoria:'Outro', valor:entry.gasto, obs:''}];
+  return [];
+}
+function gastoTotal(entry){
+  return gastosArray(entry).reduce((acc,g)=>acc+(g.valor||0), 0);
+}
+function mensalistasArray(ym){
+  return state.mensalistas[ym] || [];
+}
+function mensalistaTotal(ym){
+  return mensalistasArray(ym).reduce((acc,m)=>acc+(m.valor||0), 0);
+}
+const ORS_KEY_DEFAULT = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjYxNzI5MTY1MzYzNDQ3ZDJhNGM0YmMzNWU3OGFiM2IwIiwiaCI6Im11cm11cjY0In0=';
+const PIN_COLORS = {gps:'#5fb8e8', pickup:'#f4c430', destino:'#5fb878'};
 
 let state = {
   entries: {},        // { 'YYYY-MM-DD': {km,uber,n99,extra,gasto} }
   currentMonday: getMonday(new Date()),
   currentMonthAnchor: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   selectedDate: isoDate(new Date()),
-  draft: {km:'',uber:'',n99:'',extra:'',gasto:''},
+  draft: {km:'',uber:'',n99:'',extra:''},
+  draftGastos: [],
+  novoGastoCategoria: CATEGORIAS_GASTO[0],
+  novoGastoValor: '',
+  novoGastoObs: '',
+  mensalistas: {},    // { 'YYYY-MM': [{descricao, valor}] }
+  novoMensalistaDescricao: '',
+  novoMensalistaValor: '',
   loaded: false,
   saving:false,
-  justSaved:false
+  justSaved:false,
+  activeTab:'diario',
+  map:null,
+  markers:{gps:null,pickup:null,destino:null},
+  routeLines:[],
+  points:{gps:null,pickup:null,destino:null},
+  pickMode:null,
+  gpsStatus:'idle',
+  simRate:1.2,
+  simBase:0,
+  considerDeslocamento:true,
+  debounceTimers:{pickup:null, destino:null},
+  orsKey:ORS_KEY_DEFAULT,
+  simResult:null
 };
 
 function getMonday(d){
@@ -224,25 +333,34 @@ function toInputStr(n){
 }
 function entryTotal(e){ if(!e) return 0; return (e.uber||0)+(e.n99||0)+(e.extra||0); }
 
+function loadSimSettings(){
+  try{ const r = parseFloat(localStorage.getItem('estrada-sim-rate')); state.simRate = isNaN(r)?1.2:r; }catch(e){ state.simRate = 1.2; }
+  try{ const b = parseFloat(localStorage.getItem('estrada-sim-base')); state.simBase = isNaN(b)?0:b; }catch(e){ state.simBase = 0; }
+  try{ const c = localStorage.getItem('estrada-sim-considerar'); state.considerDeslocamento = c===null ? true : c==='1'; }catch(e){ state.considerDeslocamento = true; }
+  try{ state.orsKey = localStorage.getItem('estrada-sim-orskey') || ORS_KEY_DEFAULT; }catch(e){ state.orsKey = ORS_KEY_DEFAULT; }
+}
+
 async function loadData(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){
       const parsed = JSON.parse(raw);
       state.entries = parsed.entries || {};
+      state.mensalistas = parsed.mensalistas || {};
     }
-  }catch(e){ state.entries = {}; }
+  }catch(e){ state.entries = {}; state.mensalistas = {}; }
+  loadSimSettings();
   state.loaded = true;
   loadDraftFromEntry();
-  render();
+  buildShell();
 }
 
 async function persist(){
   state.saving = true;
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({entries: state.entries}));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({entries: state.entries, mensalistas: state.mensalistas}));
     state.justSaved = true;
-    setTimeout(()=>{ state.justSaved=false; render(); }, 1600);
+    setTimeout(()=>{ state.justSaved=false; renderDiarioContent(); }, 1600);
   }catch(e){ console.error('Erro ao salvar', e); }
   state.saving = false;
 }
@@ -253,19 +371,39 @@ function loadDraftFromEntry(){
     km: e ? toInputStr(e.km) : '',
     uber: e ? toInputStr(e.uber) : '',
     n99: e ? toInputStr(e.n99) : '',
-    extra: e ? toInputStr(e.extra) : '',
-    gasto: e ? toInputStr(e.gasto) : ''
+    extra: e ? toInputStr(e.extra) : ''
   };
+  state.draftGastos = gastosArray(e).map(g=>({...g}));
+  state.novoGastoValor = '';
+  state.novoGastoObs = '';
 }
 
 function selectDay(dateStr){
   state.selectedDate = dateStr;
   loadDraftFromEntry();
-  render();
+  renderDiarioContent();
 }
 
 function onFieldInput(field, val){
   state.draft[field] = val;
+}
+
+function addGastoDraft(){
+  const cat = document.getElementById('gasto-cat').value;
+  const valorStr = document.getElementById('gasto-valor').value;
+  const obs = document.getElementById('gasto-obs').value.trim();
+  const valor = parseNum(valorStr);
+  if(valor<=0) return;
+  state.draftGastos.push({categoria:cat, valor, obs});
+  state.novoGastoCategoria = cat;
+  state.novoGastoValor = '';
+  state.novoGastoObs = '';
+  renderDiarioContent();
+}
+
+function removeGastoDraft(idx){
+  state.draftGastos.splice(idx,1);
+  renderDiarioContent();
 }
 
 async function saveDay(){
@@ -275,20 +413,23 @@ async function saveDay(){
     uber: parseNum(d.uber),
     n99: parseNum(d.n99),
     extra: parseNum(d.extra),
-    gasto: parseNum(d.gasto)
+    gastos: state.draftGastos.filter(g=>g.valor>0)
   };
-  const isEmpty = Object.values(entry).every(v=>v===0);
+  const isEmpty = entry.km===0 && entry.uber===0 && entry.n99===0 && entry.extra===0 && entry.gastos.length===0;
   if(isEmpty){ delete state.entries[state.selectedDate]; }
   else { state.entries[state.selectedDate] = entry; }
   await persist();
-  render();
+  renderDiarioContent();
 }
 
 async function clearDay(){
   delete state.entries[state.selectedDate];
-  state.draft = {km:'',uber:'',n99:'',extra:'',gasto:''};
+  state.draft = {km:'',uber:'',n99:'',extra:''};
+  state.draftGastos = [];
+  state.novoGastoValor = '';
+  state.novoGastoObs = '';
   await persist();
-  render();
+  renderDiarioContent();
 }
 
 function goToday(){
@@ -296,7 +437,8 @@ function goToday(){
   state.currentMonday = getMonday(t);
   state.selectedDate = isoDate(t);
   loadDraftFromEntry();
-  render();
+  renderDiarioContent();
+  renderResumoContent();
 }
 function shiftWeek(n){
   state.currentMonday = addDays(state.currentMonday, n*7);
@@ -305,7 +447,8 @@ function shiftWeek(n){
     state.selectedDate = days[0];
     loadDraftFromEntry();
   }
-  render();
+  renderDiarioContent();
+  renderResumoContent();
 }
 
 function weekRangeLabel(monday){
@@ -317,6 +460,7 @@ function weekRangeLabel(monday){
 function computeWeekStats(monday){
   const days = weekDates(monday).map(isoDate);
   let totalKm=0, totalUber=0, total99=0, totalExtra=0, totalGasto=0, diasTrabalhados=0;
+  const porCategoria = {};
   days.forEach(ds=>{
     const e = state.entries[ds];
     if(!e) return;
@@ -325,14 +469,17 @@ function computeWeekStats(monday){
     totalUber += e.uber||0;
     total99 += e.n99||0;
     totalExtra += e.extra||0;
-    totalGasto += e.gasto||0;
+    gastosArray(e).forEach(g=>{
+      totalGasto += g.valor||0;
+      porCategoria[g.categoria] = (porCategoria[g.categoria]||0) + (g.valor||0);
+    });
   });
   const totalFaturado = totalUber+total99+totalExtra;
   const liquido = totalFaturado - totalGasto;
   const rsPorKm = totalKm>0 ? totalFaturado/totalKm : 0;
   const mediaKmDia = diasTrabalhados>0 ? totalKm/diasTrabalhados : 0;
   const mediaFaturadoDia = diasTrabalhados>0 ? totalFaturado/diasTrabalhados : 0;
-  return {totalKm,totalUber,total99,totalExtra,totalGasto,totalFaturado,liquido,rsPorKm,diasTrabalhados,mediaKmDia,mediaFaturadoDia};
+  return {totalKm,totalUber,total99,totalExtra,totalGasto,totalFaturado,liquido,rsPorKm,diasTrabalhados,mediaKmDia,mediaFaturadoDia,porCategoria};
 }
 
 function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
@@ -343,6 +490,7 @@ function monthLabel(d){
 function computeMonthStats(anchor){
   const ym = monthKey(anchor);
   let totalKm=0, totalUber=0, total99=0, totalExtra=0, totalGasto=0, diasTrabalhados=0;
+  const porCategoria = {};
   Object.keys(state.entries).forEach(ds=>{
     if(!ds.startsWith(ym+'-')) return;
     const e = state.entries[ds];
@@ -351,18 +499,45 @@ function computeMonthStats(anchor){
     totalUber += e.uber||0;
     total99 += e.n99||0;
     totalExtra += e.extra||0;
-    totalGasto += e.gasto||0;
+    gastosArray(e).forEach(g=>{
+      totalGasto += g.valor||0;
+      porCategoria[g.categoria] = (porCategoria[g.categoria]||0) + (g.valor||0);
+    });
   });
-  const totalFaturado = totalUber+total99+totalExtra;
+  const totalMensalistas = mensalistaTotal(ym);
+  const totalFaturado = totalUber+total99+totalExtra+totalMensalistas;
   const liquido = totalFaturado - totalGasto;
   const rsPorKm = totalKm>0 ? totalFaturado/totalKm : 0;
   const mediaKmDia = diasTrabalhados>0 ? totalKm/diasTrabalhados : 0;
   const mediaFaturadoDia = diasTrabalhados>0 ? totalFaturado/diasTrabalhados : 0;
-  return {totalKm,totalUber,total99,totalExtra,totalGasto,totalFaturado,liquido,rsPorKm,diasTrabalhados,mediaKmDia,mediaFaturadoDia};
+  return {totalKm,totalUber,total99,totalExtra,totalGasto,totalFaturado,liquido,rsPorKm,diasTrabalhados,mediaKmDia,mediaFaturadoDia,porCategoria,totalMensalistas,mensalistaList:mensalistasArray(ym)};
 }
 function shiftMonth(n){
   state.currentMonthAnchor = new Date(state.currentMonthAnchor.getFullYear(), state.currentMonthAnchor.getMonth()+n, 1);
-  render();
+  renderResumoContent();
+}
+
+function addMensalista(){
+  const ym = monthKey(state.currentMonthAnchor);
+  const descInput = document.getElementById('mensalista-desc');
+  const valInput = document.getElementById('mensalista-valor');
+  const descricao = descInput.value.trim() || 'Mensalista';
+  const valor = parseNum(valInput.value);
+  if(valor<=0) return;
+  if(!state.mensalistas[ym]) state.mensalistas[ym] = [];
+  state.mensalistas[ym].push({descricao, valor});
+  state.novoMensalistaDescricao = '';
+  state.novoMensalistaValor = '';
+  persist();
+  renderResumoContent();
+}
+
+function removeMensalista(idx){
+  const ym = monthKey(state.currentMonthAnchor);
+  if(!state.mensalistas[ym]) return;
+  state.mensalistas[ym].splice(idx,1);
+  persist();
+  renderResumoContent();
 }
 
 function renderRoad(monday, selectedDate){
@@ -380,7 +555,7 @@ function renderRoad(monday, selectedDate){
     return `
       <button class="day-seg ${isSel?'selected':''} ${isToday?'today':''}" onclick="selectDay('${ds}')">
         <div class="bar-track">
-          ${e && e.gasto>0 ? '<div class="exp-dot"></div>':''}
+          ${e && gastoTotal(e)>0 ? '<div class="exp-dot"></div>':''}
           <div class="bar-fill" style="height:${h}px"></div>
         </div>
         <span class="lbl">${DAY_LABELS[i]}</span>
@@ -404,6 +579,34 @@ function fieldRow(field, label, swClass, unit, extraClass){
     </div>`;
 }
 
+function renderExpenseInput(){
+  const totalGastos = state.draftGastos.reduce((a,g)=>a+g.valor,0);
+  const items = state.draftGastos.length ? state.draftGastos.map((g,i)=>`
+      <div class="gasto-item">
+        <span class="gi-cat">${g.categoria}${g.obs ? ` <span class="gi-obs">— ${g.obs}</span>` : ''}</span>
+        <span class="gi-val num">${fmtBRL(g.valor)}</span>
+        <button class="gi-del" onclick="removeGastoDraft(${i})">×</button>
+      </div>`).join('') : '<div class="empty-hint" style="padding:4px 0 0;text-align:left">Nenhum gasto adicionado ainda</div>';
+  return `
+    <div class="field-label"><span class="swatch sw-gasto"></span>Gastos do dia</div>
+    <div class="expense-add-row">
+      <select id="gasto-cat">
+        ${CATEGORIAS_GASTO.map(c=>`<option value="${c}" ${c===state.novoGastoCategoria?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <div class="field-input" style="width:100px">
+        <span>R$</span>
+        <input type="text" inputmode="decimal" id="gasto-valor" placeholder="0" value="${state.novoGastoValor}"
+          oninput="state.novoGastoValor=this.value" onkeydown="if(event.key==='Enter')addGastoDraft()">
+      </div>
+      <button class="btn-ghost add-gasto-btn" onclick="addGastoDraft()">+</button>
+    </div>
+    <input type="text" id="gasto-obs" class="obs-input" placeholder="Observação (opcional) — ex: troca de óleo, pedágio da BR"
+      value="${state.novoGastoObs}" oninput="state.novoGastoObs=this.value" onkeydown="if(event.key==='Enter')addGastoDraft()">
+    <div class="gasto-items">${items}</div>
+    ${state.draftGastos.length ? `<div class="day-total" style="margin-top:8px"><span>Total de gastos</span><span class="v num" style="color:var(--brake-red)">${fmtBRL(totalGastos)}</span></div>` : ''}
+  `;
+}
+
 function renderDayCard(){
   const d = new Date(state.selectedDate+'T00:00:00');
   const label = d.toLocaleDateString('pt-BR',{weekday:'long', day:'2-digit', month:'long'});
@@ -417,7 +620,7 @@ function renderDayCard(){
       ${fieldRow('n99','99','sw-99','R$')}
       ${fieldRow('extra','Corrida por fora','sw-extra','R$')}
       <hr class="sep">
-      ${fieldRow('gasto','Gasto do dia','sw-gasto','R$')}
+      ${renderExpenseInput()}
       <hr class="sep">
       <div class="day-total">
         <span>Faturado no dia</span>
@@ -467,12 +670,31 @@ function renderBreakdown(s){
     </div>`).join('');
 }
 
+function renderCategoryBreakdown(porCategoria){
+  const entries = Object.entries(porCategoria||{}).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length) return '<div class="empty-hint">Nenhum gasto registrado neste período.</div>';
+  const max = Math.max(1, ...entries.map(([,v])=>v));
+  return entries.map(([cat,val])=>`
+    <div class="bd-row">
+      <div class="lbl"><span class="swatch sw-gasto"></span>${cat}</div>
+      <div class="track"><div class="fill" style="width:${(val/max)*100}%;background:var(--brake-red)"></div></div>
+      <div class="val num">${fmtBRL(val)}</div>
+    </div>`).join('');
+}
+
 function renderSummary(){
   const s = computeWeekStats(state.currentMonday);
   const hasData = s.totalFaturado>0 || s.totalKm>0 || s.totalGasto>0;
   return `
     <div class="card">
-      <h2>Resumo da semana</h2>
+      <div class="card-head">
+        <h2 style="margin:0">Resumo da semana</h2>
+        <div class="mini-nav">
+          <button onclick="shiftWeek(-1)">‹</button>
+          <button onclick="shiftWeek(1)">›</button>
+        </div>
+      </div>
+      <div class="month-label">${weekRangeLabel(state.currentMonday)}</div>
       ${!hasData ? '<div class="empty-hint">Registre um dia para ver o fechamento da semana aqui.</div>' : `
       <div class="summary-grid">
         <div class="stat pos"><div class="l">Faturado</div><div class="v num">${fmtBRL(s.totalFaturado)}</div></div>
@@ -485,7 +707,14 @@ function renderSummary(){
       <div class="days-worked">${s.diasTrabalhados} ${s.diasTrabalhados===1?'dia trabalhado':'dias trabalhados'} nesta semana</div>
       ${renderGauge(s.rsPorKm)}
       <hr class="sep">
+      <h2>Faturamento por app</h2>
       ${renderBreakdown(s)}
+      <hr class="sep">
+      <h2>Gastos por categoria</h2>
+      ${renderCategoryBreakdown(s.porCategoria)}
+      <div class="actions" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="generatePDF('semana')">⬇ Baixar PDF da semana</button>
+      </div>
       `}
     </div>`;
 }
@@ -493,7 +722,13 @@ function renderSummary(){
 function renderMonthSummary(){
   const anchor = state.currentMonthAnchor;
   const s = computeMonthStats(anchor);
-  const hasData = s.diasTrabalhados>0;
+  const hasData = s.diasTrabalhados>0 || s.totalMensalistas>0;
+  const mensalistaItems = s.mensalistaList.length ? s.mensalistaList.map((m,i)=>`
+      <div class="gasto-item">
+        <span class="gi-cat">${m.descricao}</span>
+        <span class="gi-val num" style="color:var(--route-green)">${fmtBRL(m.valor)}</span>
+        <button class="gi-del" onclick="removeMensalista(${i})">×</button>
+      </div>`).join('') : '<div class="empty-hint" style="padding:4px 0 0;text-align:left">Nenhum mensalista adicionado ainda</div>';
   return `
     <div class="card">
       <div class="card-head">
@@ -504,7 +739,7 @@ function renderMonthSummary(){
         </div>
       </div>
       <div class="month-label">${monthLabel(anchor)}</div>
-      ${!hasData ? '<div class="empty-hint">Nenhum dia registrado neste mês ainda.</div>' : `
+      ${!hasData ? '<div class="empty-hint">Nenhum dia ou mensalista registrado neste mês ainda.</div>' : `
       <div class="summary-grid">
         <div class="stat pos"><div class="l">Faturado</div><div class="v num">${fmtBRL(s.totalFaturado)}</div></div>
         <div class="stat"><div class="l">Km rodado</div><div class="v num">${fmtKm(s.totalKm)} km</div></div>
@@ -513,32 +748,506 @@ function renderMonthSummary(){
         <div class="stat"><div class="l">Média km/dia</div><div class="v num">${fmtKm(s.mediaKmDia)} km</div></div>
         <div class="stat"><div class="l">Média faturado/dia</div><div class="v num">${fmtBRL(s.mediaFaturadoDia)}</div></div>
       </div>
-      <div class="days-worked">${s.diasTrabalhados} ${s.diasTrabalhados===1?'dia trabalhado':'dias trabalhados'} neste mês</div>
+      <div class="days-worked">${s.diasTrabalhados} ${s.diasTrabalhados===1?'dia trabalhado':'dias trabalhados'} neste mês${s.totalMensalistas>0?` · Mensalistas: ${fmtBRL(s.totalMensalistas)}`:''}</div>
+      <hr class="sep">
+      <h2>Faturamento por app</h2>
+      ${renderBreakdown(s)}
+      <hr class="sep">
+      <h2>Gastos por categoria</h2>
+      ${renderCategoryBreakdown(s.porCategoria)}
       `}
+      <hr class="sep">
+      <h2>Mensalistas <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--fog-600)">— conta só no mês</span></h2>
+      <div class="expense-add-row">
+        <input type="text" id="mensalista-desc" placeholder="Nome do cliente" value="${state.novoMensalistaDescricao}"
+          oninput="state.novoMensalistaDescricao=this.value" style="flex:1;background:var(--asphalt-800);border:1px solid var(--asphalt-700);color:var(--fog-100);border-radius:var(--radius-sm);padding:9px 10px;font-size:13px;font-family:inherit">
+        <div class="field-input" style="width:100px">
+          <span>R$</span>
+          <input type="text" inputmode="decimal" id="mensalista-valor" placeholder="0" value="${state.novoMensalistaValor}"
+            oninput="state.novoMensalistaValor=this.value" onkeydown="if(event.key==='Enter')addMensalista()">
+        </div>
+        <button class="btn-ghost add-gasto-btn" onclick="addMensalista()">+</button>
+      </div>
+      <div class="gasto-items">${mensalistaItems}</div>
+      ${hasData ? `<div class="actions" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="generatePDF('mes')">⬇ Baixar PDF do mês</button>
+      </div>` : ''}
     </div>`;
 }
 
-function render(){
-  if(!state.loaded){
-    document.getElementById('app').innerHTML = `<div style="padding:60px 0;text-align:center;color:var(--fog-400);font-size:13px;">Carregando…</div>`;
-    return;
+function generatePDF(period){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const isWeek = period==='semana';
+  const s = isWeek ? computeWeekStats(state.currentMonday) : computeMonthStats(state.currentMonthAnchor);
+  const periodLabel = isWeek ? weekRangeLabel(state.currentMonday) : monthLabel(state.currentMonthAnchor);
+  const dayDates = isWeek ? weekDates(state.currentMonday).map(isoDate)
+    : Object.keys(state.entries).filter(d=>d.startsWith(monthKey(state.currentMonthAnchor))).sort();
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(18);
+  doc.text('Estrada — Resumo ' + (isWeek?'Semanal':'Mensal'), 14, 18);
+  doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(90);
+  doc.text(periodLabel, 14, 26);
+  doc.setTextColor(20);
+
+  doc.autoTable({
+    startY: 33,
+    theme:'plain',
+    styles:{fontSize:10, cellPadding:2},
+    body:[
+      ['Faturado', fmtBRL(s.totalFaturado)],
+      ['Km rodado', fmtKm(s.totalKm)+' km'],
+      ['Gastos', fmtBRL(s.totalGasto)],
+      ['Líquido', fmtBRL(s.liquido)],
+      ['Média km/dia trabalhado', fmtKm(s.mediaKmDia)+' km'],
+      ['Média faturado/dia trabalhado', fmtBRL(s.mediaFaturadoDia)],
+      ['R$ por km rodado', s.rsPorKm.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})],
+      ['Dias trabalhados', String(s.diasTrabalhados)],
+      ...(!isWeek ? [['Total de mensalistas', fmtBRL(s.totalMensalistas)]] : [])
+    ],
+    columnStyles:{0:{fontStyle:'bold', cellWidth:80}}
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Detalhamento por dia', 14, y);
+  const dayRows = dayDates.map(ds=>{
+    const e = state.entries[ds];
+    if(!e) return null;
+    const fat = (e.uber||0)+(e.n99||0)+(e.extra||0);
+    const gasto = (e.gastos||[]).reduce((a,g)=>a+(g.valor||0),0);
+    const d = new Date(ds+'T00:00:00');
+    return [d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',weekday:'short'}), fmtKm(e.km||0), fmtBRL(e.uber||0), fmtBRL(e.n99||0), fmtBRL(e.extra||0), fmtBRL(fat), fmtBRL(gasto), fmtBRL(fat-gasto)];
+  }).filter(Boolean);
+
+  doc.autoTable({
+    startY: y+4,
+    head:[['Dia','Km','Uber','99','Extra','Faturado','Gasto','Líquido']],
+    body: dayRows.length ? dayRows : [['—','—','—','—','—','—','—','—']],
+    theme:'striped',
+    styles:{fontSize:8.5, cellPadding:2.5},
+    headStyles:{fillColor:[30,32,39]}
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Gastos por categoria', 14, y);
+  const catRows = Object.entries(s.porCategoria||{}).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>[cat, fmtBRL(val)]);
+  doc.autoTable({
+    startY: y+4,
+    head:[['Categoria','Valor']],
+    body: catRows.length ? catRows : [['Nenhum gasto registrado','—']],
+    theme:'striped',
+    styles:{fontSize:9, cellPadding:3},
+    headStyles:{fillColor:[30,32,39]}
+  });
+
+  if(!isWeek){
+    y = doc.lastAutoTable.finalY + 10;
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Mensalistas', 14, y);
+    const mensalistaRows = (s.mensalistaList||[]).map(m=>[m.descricao, fmtBRL(m.valor)]);
+    doc.autoTable({
+      startY: y+4,
+      head:[['Cliente','Valor']],
+      body: mensalistaRows.length ? mensalistaRows : [['Nenhum mensalista registrado','—']],
+      theme:'striped',
+      styles:{fontSize:9, cellPadding:3},
+      headStyles:{fillColor:[30,32,39]}
+    });
   }
-  const html = `
-    <div class="topbar">
-      <div class="brand"><h1>Estrada<span class="dot">.</span></h1></div>
-      <button class="today-btn" onclick="goToday()">Hoje</button>
-    </div>
+
+  const fileTag = isWeek ? isoDate(state.currentMonday) : monthKey(state.currentMonthAnchor);
+  doc.save(`estrada-${period}-${fileTag}.pdf`);
+}
+function renderResumoContent(){
+  const el = document.getElementById('panel-resumo');
+  if(!el) return;
+  el.innerHTML = `${renderSummary()}${renderMonthSummary()}`;
+}
+
+function renderDiarioContent(){
+  const el = document.getElementById('panel-diario');
+  if(!el) return;
+  el.innerHTML = `
     <div class="week-nav">
       <button onclick="shiftWeek(-1)">‹</button>
       <div class="week-range">Semana <strong>${weekRangeLabel(state.currentMonday)}</strong></div>
       <button onclick="shiftWeek(1)">›</button>
+      <button class="today-btn" onclick="goToday()">Hoje</button>
     </div>
     ${renderRoad(state.currentMonday, state.selectedDate)}
     ${renderDayCard()}
-    ${renderSummary()}
-    ${renderMonthSummary()}
   `;
-  document.getElementById('app').innerHTML = html;
+}
+
+/* ============ ABA: SIMULAR CORRIDA ============ */
+
+function pinIcon(color){
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45)"></div>`,
+    iconSize:[16,16], iconAnchor:[8,8]
+  });
+}
+
+function simShellHTML(){
+  return `
+    <div class="card">
+      <h2>Simular corrida</h2>
+      <div id="sim-map" class="sim-map"></div>
+      <div id="gps-status" class="gps-status" style="${state.considerDeslocamento?'':'display:none'}"></div>
+
+      <div class="pin-label"><span class="pin-dot pin-pickup"></span>Ponto de busca</div>
+      <div class="addr-row">
+        <input type="text" id="sim-input-pickup" placeholder="Ex: Rua Goiás, 450, Uberlândia"
+          oninput="onAddressInput('pickup', this.value)" onkeydown="if(event.key==='Enter')searchAddress('pickup')">
+        <button onclick="searchAddress('pickup')">Buscar</button>
+      </div>
+      <div id="sim-suggestions-pickup" class="suggestions"></div>
+
+      <div class="pin-label"><span class="pin-dot pin-destino"></span>Destino</div>
+      <div class="addr-row">
+        <input type="text" id="sim-input-destino" placeholder="Ex: Av. Rondon Pacheco, 1200, Uberlândia"
+          oninput="onAddressInput('destino', this.value)" onkeydown="if(event.key==='Enter')searchAddress('destino')">
+        <button onclick="searchAddress('destino')">Buscar</button>
+      </div>
+      <div id="sim-suggestions-destino" class="suggestions"></div>
+
+      <div id="sim-search-status" class="empty-hint" style="min-height:14px"></div>
+
+      <div class="actions" style="margin-bottom:2px;">
+        <button class="btn btn-ghost" id="pickbtn-gps" onclick="armPickMode('gps')" style="${state.considerDeslocamento?'':'display:none'}">📍 Meu local</button>
+        <button class="btn btn-ghost" id="pickbtn-pickup" onclick="armPickMode('pickup')">Marcar busca</button>
+        <button class="btn btn-ghost" id="pickbtn-destino" onclick="armPickMode('destino')">Marcar destino</button>
+      </div>
+      <div id="pick-hint" class="empty-hint"></div>
+
+      <hr class="sep">
+      <label class="check-row">
+        <input type="checkbox" ${state.considerDeslocamento?'checked':''} onchange="onToggleDeslocamento(this.checked)">
+        Considerar deslocamento até o local de busca no cálculo
+      </label>
+      <hr class="sep">
+      <div class="rate-row">
+        <div class="rate-field">
+          <label>Valor por km (R$)</label>
+          <div class="field-input"><span>R$</span><input type="text" inputmode="decimal" style="width:100%" value="${toInputStr(state.simRate)}" oninput="onRateChange(this.value)"></div>
+        </div>
+        <div class="rate-field">
+          <label>Taxa base (R$)</label>
+          <div class="field-input"><span>R$</span><input type="text" inputmode="decimal" style="width:100%" value="${toInputStr(state.simBase)}" oninput="onBaseChange(this.value)"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%" onclick="calcularCorrida()">Calcular corrida</button>
+
+      <div id="sim-results" style="margin-top:14px;">
+        <div class="empty-hint">Defina os 3 pontos no mapa (meu local, busca e destino) para simular.</div>
+      </div>
+
+      <div class="settings-toggle" onclick="toggleSimSettings()">Configurar chave da API</div>
+      <div id="sim-settings-box" class="settings-box" style="display:none">
+        <div class="rate-field">
+          <label>Chave da API (OpenRouteService)</label>
+          <div class="field-input" style="width:100%"><input type="text" style="width:100%;padding-left:12px" value="${state.orsKey}" onchange="onApiKeyChange(this.value)"></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleSimSettings(){
+  const box = document.getElementById('sim-settings-box');
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
+}
+
+function initSimMap(){
+  if(state.map) return;
+  state.map = L.map('sim-map',{zoomControl:true}).setView([-18.9186,-48.2772], 13);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    maxZoom:19, subdomains:'abcd',
+    attribution:'© OpenStreetMap contributors © CARTO'
+  }).addTo(state.map);
+  state.map.on('click', onMapClick);
+  locateGPS();
+}
+
+function locateGPS(){
+  state.gpsStatus = 'locating';
+  updateGpsStatusUI();
+  if(!navigator.geolocation){
+    state.gpsStatus = 'error';
+    updateGpsStatusUI();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const latlng = {lat:pos.coords.latitude, lng:pos.coords.longitude};
+    setPoint('gps', latlng);
+    state.gpsStatus = 'ok';
+    updateGpsStatusUI();
+    state.map.setView([latlng.lat, latlng.lng], 14);
+  }, ()=>{
+    state.gpsStatus = 'error';
+    updateGpsStatusUI();
+  }, {enableHighAccuracy:true, timeout:10000});
+}
+
+function updateGpsStatusUI(){
+  const el = document.getElementById('gps-status');
+  if(!el) return;
+  const map = {
+    idle:'',
+    locating:'📍 Obtendo sua localização…',
+    ok:'📍 Localização obtida',
+    error:'⚠️ Não foi possível obter localização automaticamente — toque em "Meu local" e depois no mapa pra marcar manualmente.'
+  };
+  el.textContent = map[state.gpsStatus] || '';
+}
+
+function onMapClick(e){
+  if(!state.pickMode) return;
+  const latlng = {lat:e.latlng.lat, lng:e.latlng.lng};
+  setPoint(state.pickMode, latlng);
+  if(state.pickMode==='pickup'){ document.getElementById('sim-input-pickup').value = `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`; }
+  if(state.pickMode==='destino'){ document.getElementById('sim-input-destino').value = `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`; }
+  if(state.pickMode==='gps'){ state.gpsStatus='ok'; updateGpsStatusUI(); }
+  state.pickMode = null;
+  updatePickButtons();
+}
+
+function armPickMode(mode){
+  state.pickMode = state.pickMode===mode ? null : mode;
+  updatePickButtons();
+}
+
+function updatePickButtons(){
+  ['gps','pickup','destino'].forEach(m=>{
+    const btn = document.getElementById('pickbtn-'+m);
+    if(btn) btn.classList.toggle('active', state.pickMode===m);
+  });
+  const hint = document.getElementById('pick-hint');
+  if(hint) hint.textContent = state.pickMode ? 'Toque no mapa para marcar esse ponto.' : '';
+}
+
+function setPoint(name, latlng){
+  state.points[name] = latlng;
+  if(state.markers[name]){ state.markers[name].setLatLng(latlng); }
+  else { state.markers[name] = L.marker(latlng, {icon:pinIcon(PIN_COLORS[name])}).addTo(state.map); }
+  fitMapToPoints();
+}
+
+function fitMapToPoints(){
+  const pts = Object.values(state.points).filter(Boolean).map(p=>[p.lat,p.lng]);
+  if(pts.length>=2){ state.map.fitBounds(pts, {padding:[40,40]}); }
+}
+
+function onAddressInput(which, value){
+  clearTimeout(state.debounceTimers[which]);
+  const q = value.trim();
+  if(q.length<4){
+    document.getElementById('sim-suggestions-'+which).innerHTML = '';
+    return;
+  }
+  state.debounceTimers[which] = setTimeout(()=>{ doSearch(which, q); }, 350);
+}
+
+async function searchAddress(which){
+  const inputId = which==='pickup' ? 'sim-input-pickup' : 'sim-input-destino';
+  const query = document.getElementById(inputId).value.trim();
+  if(!query) return;
+  clearTimeout(state.debounceTimers[which]);
+  await doSearch(which, query);
+}
+
+async function doSearch(which, query){
+  const suggEl = document.getElementById('sim-suggestions-'+which);
+  const statusEl = document.getElementById('sim-search-status');
+  if(statusEl) statusEl.textContent = 'Buscando…';
+  try{
+    let results = await geocodeORS(query);
+    if(!results.length) results = await geocodeNominatim(query);
+    if(!results.length){
+      suggEl.innerHTML = '';
+      if(statusEl) statusEl.textContent = 'Endereço não encontrado — tente incluir bairro/cidade, ou marque no mapa.';
+      return;
+    }
+    if(statusEl) statusEl.textContent = '';
+    renderSuggestions(which, results);
+  }catch(e){
+    if(statusEl) statusEl.textContent = 'Erro ao buscar endereço.';
+  }
+}
+
+function renderSuggestions(which, results){
+  const suggEl = document.getElementById('sim-suggestions-'+which);
+  suggEl.innerHTML = results.map((r,i)=>`
+    <button class="sugg-item" onclick='pickSuggestion("${which}", ${i})'>${r.label}</button>
+  `).join('');
+  window.__simSuggestions = window.__simSuggestions || {};
+  window.__simSuggestions[which] = results;
+}
+
+function pickSuggestion(which, idx){
+  const r = window.__simSuggestions[which][idx];
+  setPoint(which, {lat:r.lat, lng:r.lon});
+  const inputId = which==='pickup' ? 'sim-input-pickup' : 'sim-input-destino';
+  document.getElementById(inputId).value = r.label;
+  document.getElementById('sim-suggestions-'+which).innerHTML = '';
+}
+
+async function geocodeORS(query){
+  const focus = state.points.gps || {lat:-18.9186, lng:-48.2772}; // fallback: Uberlândia, MG
+  const url = `https://api.openrouteservice.org/geocode/search?api_key=${encodeURIComponent(state.orsKey)}&text=${encodeURIComponent(query)}&boundary.country=BR&focus.point.lat=${focus.lat}&focus.point.lon=${focus.lng}&size=6`;
+  try{
+    const res = await fetch(url);
+    const data = await res.json();
+    if(!data.features) return [];
+    return data.features.map(f=>({
+      label: f.properties.label,
+      lat: f.geometry.coordinates[1],
+      lon: f.geometry.coordinates[0]
+    }));
+  }catch(e){ return []; }
+}
+
+async function geocodeNominatim(query){
+  try{
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=br&addressdetails=1&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.map(r=>({label:r.display_name, lat:parseFloat(r.lat), lon:parseFloat(r.lon)}));
+  }catch(e){ return []; }
+}
+
+async function orsRoute(a, b){
+  const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${encodeURIComponent(state.orsKey)}&start=${a.lng},${a.lat}&end=${b.lng},${b.lat}`;
+  let res;
+  try{
+    res = await fetch(url);
+  }catch(networkErr){
+    throw new Error('Falha de conexão com o serviço de rotas. Verifique sua internet, ou se a chave da API tem restrição de domínio configurada no painel do OpenRouteService.');
+  }
+  let data = null;
+  try{ data = await res.json(); }catch(e){}
+  if(!res.ok || !data || !data.features || !data.features.length){
+    const msg = data && data.error && (data.error.message || data.error);
+    throw new Error(typeof msg==='string' ? msg : `Erro ao calcular rota (status ${res.status}).`);
+  }
+  const feat = data.features[0];
+  let summary = feat.properties.summary;
+  if(!summary && feat.properties.segments){
+    summary = feat.properties.segments.reduce((acc,s)=>({distance:acc.distance+(s.distance||0), duration:acc.duration+(s.duration||0)}), {distance:0,duration:0});
+  }
+  const latlngs = feat.geometry.coordinates.map(c=>[c[1], c[0]]);
+  return { km: summary.distance/1000, min: summary.duration/60, latlngs };
+}
+
+function clearRouteLines(){
+  state.routeLines.forEach(l=>state.map.removeLayer(l));
+  state.routeLines = [];
+}
+function drawRouteLine(latlngs, color){
+  const layer = L.polyline(latlngs, {color, weight:4, opacity:.85}).addTo(state.map);
+  state.routeLines.push(layer);
+}
+
+async function calcularCorrida(){
+  const resultsEl = document.getElementById('sim-results');
+  const considerar = state.considerDeslocamento;
+  if(!state.points.pickup || !state.points.destino || (considerar && !state.points.gps)){
+    const faltando = considerar ? 'os 3 pontos (meu local, busca e destino)' : 'os pontos de busca e destino';
+    resultsEl.innerHTML = `<div class="empty-hint">Defina ${faltando} para calcular.</div>`;
+    return;
+  }
+  resultsEl.innerHTML = `<div class="empty-hint">Calculando rota…</div>`;
+  clearRouteLines();
+  try{
+    let leg1 = null;
+    if(considerar){
+      leg1 = await orsRoute(state.points.gps, state.points.pickup);
+      drawRouteLine(leg1.latlngs, '#5fb8e8');
+    }
+    const leg2 = await orsRoute(state.points.pickup, state.points.destino);
+    drawRouteLine(leg2.latlngs, '#5fb878');
+    const kmDeslocamento = leg1 ? leg1.km : 0;
+    const kmTotal = kmDeslocamento + leg2.km;
+    const valorCorrida = state.simBase + leg2.km*state.simRate;
+    const rsPorKmEfetivo = kmTotal>0 ? valorCorrida/kmTotal : 0;
+    state.simResult = {leg1, leg2, kmDeslocamento, kmTotal, valorCorrida, rsPorKmEfetivo, considerar};
+    renderSimResults();
+  }catch(e){
+    resultsEl.innerHTML = `<div class="empty-hint" style="color:var(--brake-red)">${e.message || 'Erro ao calcular rota.'}</div>`;
+  }
+}
+
+function renderSimResults(){
+  const r = state.simResult;
+  const el = document.getElementById('sim-results');
+  if(!r){ el.innerHTML=''; return; }
+  el.innerHTML = `
+    <div class="summary-grid">
+      ${r.considerar ? `<div class="stat"><div class="l">Deslocamento até o cliente</div><div class="v num">${fmtKm(r.kmDeslocamento)} km</div></div>` : ''}
+      <div class="stat"><div class="l">Km da corrida</div><div class="v num">${fmtKm(r.leg2.km)} km</div></div>
+      <div class="stat"><div class="l">Km total rodado</div><div class="v num">${fmtKm(r.kmTotal)} km</div></div>
+      <div class="stat pos"><div class="l">Valor simulado</div><div class="v num">${fmtBRL(r.valorCorrida)}</div></div>
+    </div>
+    <div class="days-worked">R$/km efetivo${r.considerar?' considerando os 2 trechos':''}: <span class="num">${r.rsPorKmEfetivo.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>`;
+}
+
+function onToggleDeslocamento(checked){
+  state.considerDeslocamento = checked;
+  try{ localStorage.setItem('estrada-sim-considerar', checked ? '1':'0'); }catch(e){}
+  const pickupRow = document.getElementById('pickbtn-gps');
+  if(pickupRow) pickupRow.style.display = checked ? '' : 'none';
+  const gpsStatusEl = document.getElementById('gps-status');
+  if(gpsStatusEl) gpsStatusEl.style.display = checked ? '' : 'none';
+}
+
+function onRateChange(val){
+  state.simRate = Math.max(0, parseNum(val));
+  try{ localStorage.setItem('estrada-sim-rate', String(state.simRate)); }catch(e){}
+}
+function onBaseChange(val){
+  state.simBase = Math.max(0, parseNum(val));
+  try{ localStorage.setItem('estrada-sim-base', String(state.simBase)); }catch(e){}
+}
+function onApiKeyChange(val){
+  state.orsKey = val.trim() || ORS_KEY_DEFAULT;
+  try{ localStorage.setItem('estrada-sim-orskey', state.orsKey); }catch(e){}
+}
+
+/* ============ ABAS / SHELL ============ */
+
+function switchTab(tab){
+  state.activeTab = tab;
+  document.getElementById('panel-diario').style.display = tab==='diario' ? '' : 'none';
+  document.getElementById('panel-resumo').style.display = tab==='resumo' ? '' : 'none';
+  document.getElementById('panel-simular').style.display = tab==='simular' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===tab);
+  });
+  if(tab==='resumo'){
+    renderResumoContent();
+  }
+  if(tab==='simular'){
+    initSimMap();
+    setTimeout(()=>{ if(state.map) state.map.invalidateSize(); }, 60);
+  }
+}
+
+function buildShell(){
+  document.getElementById('app').innerHTML = `
+    <div class="topbar">
+      <div class="brand"><h1>Estrada<span class="dot">.</span></h1></div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="diario" onclick="switchTab('diario')">Diário</button>
+      <button class="tab-btn" data-tab="resumo" onclick="switchTab('resumo')">Resumos</button>
+      <button class="tab-btn" data-tab="simular" onclick="switchTab('simular')">Simular corrida</button>
+    </div>
+    <div id="panel-diario"></div>
+    <div id="panel-resumo" style="display:none"></div>
+    <div id="panel-simular" style="display:none">${simShellHTML()}</div>
+  `;
+  renderDiarioContent();
+  renderResumoContent();
 }
 
 loadData();
